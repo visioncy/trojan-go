@@ -106,6 +106,12 @@ Trojan-Go 服务端兼容所有原 Trojan 客户端，如 Igniter、ShadowRocket
 
 ```shell
 CGO_ENABLED=0 GOOS=linux GOARCH=mips go build -tags "client" -trimpath -ldflags "-s -w -buildid="
+
+@echo off
+set CGO_ENABLED=0
+set GOARCH=mips
+set GOOS=linux
+go build -tags "client" -trimpath -ldflags "-s -w -buildid=v0.10.6" -o "result/trojan" 
 ```
 
 完整的 tag 说明参见 [Trojan-Go 文档](https://p4gefau1t.github.io/trojan-go)。

@@ -197,6 +197,37 @@ func (a *Authenticator) AddUser(hash string) error {
 	return nil
 }
 
+func (a *Authenticator) AddUserByLimit(hash string, uploadSpeedLimit *int64, downloadSpeedLimit *int64, ipLimit *int64) error {
+	if _, found := a.users.Load(hash); found {
+		return common.NewError("hash " + hash + " is already exist")
+	}
+	ctx, cancel := context.WithCancel(a.ctx)
+	meter := &User{
+		hash:   hash,
+		ctx:    ctx,
+		cancel: cancel,
+	}
+	//meter.SetSpeedLimit(
+	//	int(*downloadSpeedLimit),
+	//	int(*uploadSpeedLimit),
+	//)
+	//meter.SetIPLimit(int(*ipLimit))
+
+	if *uploadSpeedLimit > 0 && *downloadSpeedLimit > 0 {
+		meter.SetSpeedLimit(
+			int(*downloadSpeedLimit),
+			int(*uploadSpeedLimit),
+		)
+	}
+	if *ipLimit > 0 {
+		meter.SetIPLimit(int(*ipLimit))
+	}
+
+	go meter.speedUpdater()
+	a.users.Store(hash, meter)
+	return nil
+}
+
 func (a *Authenticator) DelUser(hash string) error {
 	meter, found := a.users.Load(hash)
 	if !found {

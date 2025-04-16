@@ -47,7 +47,7 @@ func (a *Authenticator) updater() {
 		log.Info("buffered data has been written into the database")
 
 		// update memory
-		rows, err := a.db.Query("SELECT password,quota,download,upload FROM users")
+		rows, err := a.db.Query("SELECT password,quota,download,upload,uploadSpeedLimit,downloadSpeedLimit,ipLimit FROM users")
 		if err != nil || rows.Err() != nil {
 			log.Error(common.NewError("failed to pull data from the database").Base(err))
 			time.Sleep(a.updateDuration)
@@ -56,14 +56,29 @@ func (a *Authenticator) updater() {
 		for rows.Next() {
 			var hash string
 			var quota, download, upload int64
-			err := rows.Scan(&hash, &quota, &download, &upload)
+			var uploadSpeedLimit, downloadSpeedLimit, ipLimit *int64
+			err := rows.Scan(&hash, &quota, &download, &upload, &uploadSpeedLimit, &downloadSpeedLimit, &ipLimit)
 			if err != nil {
 				log.Error(common.NewError("failed to obtain data from the query result").Base(err))
 				break
 			}
 			if download+upload < quota || quota < 0 {
-				a.AddUser(hash)
+				if uploadSpeedLimit == nil {
+					temp := int64(0)
+					uploadSpeedLimit = &temp
+				}
+				if downloadSpeedLimit == nil {
+					temp := int64(0)
+					downloadSpeedLimit = &temp
+				}
+				if ipLimit == nil {
+					temp := int64(0)
+					ipLimit = &temp
+				}
+				a.AddUserByLimit(hash, uploadSpeedLimit, downloadSpeedLimit, ipLimit)
+				//a.AddUser(hash)
 			} else {
+				//Over Quota neee to delete user
 				a.DelUser(hash)
 			}
 		}
